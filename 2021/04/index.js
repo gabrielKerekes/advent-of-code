@@ -7,44 +7,24 @@ const transpose = (matrix) => {
 }
 
 const isBoardComplete = (board) => {
-  // rows
-  const anyRow = board.some(row => {
-    const r = row.filter(v => v === -1).length === 5
-    return r
-  })
-  if (anyRow) return true
-
-  // columns
-  const anyColumn = transpose(board).some(row => row.filter(v => v === -1).length === 5)
-  if (anyColumn) return true
-
-  // diagnoals
-  // var topBottom  = 0
-  // var bottomTop = 0
-  // for (var i = 0; i < board.length; i++) {
-  //   if (board[i][i] === -1) topBottom++
-  //   if (board[i][board.length - i - 1] === -1) bottomTop++
-  // }
-
-  // return topBottom === 5 || bottomTop === 5
-  return false
+  return board.some(row => row.filter(v => v === -1).length === 5)
+    || transpose(board).some(row => row.filter(v => v === -1).length === 5)
 }
 
-const findInBoard = (board, v) => {
-  for (var i = 0; i < board.length; i++) {
-    for (var j = 0; j < board.length; j++) {
-      if (board[i][j] === v) return {row: i, column: j}
-    }
-  }
-  return {row: -1, column: -1}
+const markNumber = (board, number) => {
+  return board.map(row => {
+    return row.map(v => v === number ? -1 : v)
+  })
 }
 
 const sumUnmarked = (board) => {
   return board.reduce((sumRows, row) => {
-    const sumRow = row.reduce((sumRow, v) => {
-      if (v === -1) return sumRow
-      return sumRow + v
-    }, 0)
+    const sumRow = row
+      .filter(v => v !== -1)
+      .reduce((sumRow, v) => {
+        return sumRow + v
+      }, 0)
+
     return sumRows + sumRow
   }, 0)
 }
@@ -55,52 +35,44 @@ const lines = fs
 
 const numbers = lines[0].split(',').map(v => parseInt(v))
 
-const boardLines = lines.slice(2)
+var boards = lines
+  // skip first two
+  .slice(2)
+  // remove empty lines
+  .filter(line => line !== '')
+  // split by whitespace, remove redundant whitespace, map into number
+  .map(line => line.split(' ').filter(v => v !== '').map(v => parseInt(v)))
+  // split into groups of 5
+  .map((_, i, a) => i % 5 === 0 ? a.slice(i, i + 5) : null)
+  // remove empty groups
+  .filter(v => v)
 
-const boards = []
-for (var i = 0; i < boardLines.length; i++) {
-  const board = []
-  for (var j = 0; j < 5; j++, i++) {
-    board.push(boardLines[i].split(' ').filter(v => v !== '').map(v => parseInt(v)))
-  }
-  boards.push(board)
-}
+const result1 = (() => {
+  for (number of numbers) {
+    boards = boards.map(board => markNumber(board, number))
 
-var boards2 = [...boards]
-
-var done = false
-for (var i = 0; i < numbers.length; i++) {
-  for (board of boards) {
-    const {row, column} = findInBoard(board, numbers[i])
-    if (row !== -1 && column !== -1) {
-      board[row][column] = -1
-    }
-    const boardComplete = isBoardComplete(board)
-    if (boardComplete) {
-      console.log({result1: sumUnmarked(board) * numbers[i]})
-      done = true
-      break
+    const completeBoard = boards.find(isBoardComplete)
+    if (completeBoard) {
+      return sumUnmarked(completeBoard) * number
     }
   }
-  if (done) break
-}
+})()
 
-if (!done) console.log({result1: -1})
+console.log({result1})
 
-for (var i = 0; i < numbers.length; i++) {
-  for (var j = 0; j < boards2.length; j++) {
-    const {row, column} = findInBoard(boards2[j], numbers[i])
-    if (row !== -1 && column !== -1) {
-      boards2[j][row][column] = -1
-    }
-    const boardComplete = isBoardComplete(boards2[j])
-    if (boardComplete) {
-      const deleted = boards2.splice(j, 1)
-      j--
-      if (boards2.length === 0) {
-        console.log({result2: sumUnmarked(deleted[0]) * numbers[i]})
-        return
-      }
+// no need to reset boards, we can just continue where we left off
+// although the numbers will be repeated (I don't feel like storing
+// the last number index)
+const result2 = (() => {
+  for (number of numbers) {
+    boards = boards.map(board => markNumber(board, number))
+
+    const completeBoard = boards.find(isBoardComplete)
+    boards = boards.filter(b => !isBoardComplete(b))
+    if (boards.length === 0) {
+      return sumUnmarked(completeBoard) * number
     }
   }
-}
+})()
+
+console.log({result2})
