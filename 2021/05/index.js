@@ -2,99 +2,56 @@
 
 const fs = require('fs');
 
+const markPoint = (points, x, y) => {
+  if (!points.has(y)) {
+    points.set(y, new Map())
+  }
+
+  const row = points.get(y)
+  if (!row.has(x)) {
+    row.set(x, 0)
+  }
+
+  row.set(x, row.get(x) + 1)
+}
+
+const zip = (a, b) => Array.from(Array(Math.max(b.length, a.length)), (_, i) => [a[i] == null ? a[a.length - 1] : a[i], b[i] == null ? b[b.length - 1] : b[i]]);
+
+const getRange = (start, end) => Array(end - start + 1).fill().map((_, i) => i + start)
+
+const getStartAndEnd = (v1, v2) => v1 < v2 ? [v1, v2, false] : [v2, v1, true]
+
+const getLinePoints = (p1, p2) => {
+  const [xStart, xEnd, reverseXs] = getStartAndEnd(p1.x, p2.x)
+  const xs = getRange(xStart, xEnd)
+  if (reverseXs) xs.reverse()
+
+  const [yStart, yEnd, reverseYs] = getStartAndEnd(p1.y, p2.y)
+  const ys = getRange(yStart, yEnd)
+  if (reverseYs) ys.reverse()
+
+  return zip(ys, xs)
+}
+
 const coords = fs
-  .readFileSync('smallInput.txt', 'utf8')
+  .readFileSync('input.txt', 'utf8')
   .split('\n')
   .map(line => line.split(' -> '))
-  .map(([start, end]) => [start.split(',').map(v => parseInt(v)), end.split(',').map(v => parseInt(v))])
-  .map(([start, end]) => {return {start: {x: start[0], y: start[1]}, end: {x: end[0], y: end[1]}}})
+  .map(([p1, p2]) => [p1.split(',').map(v => parseInt(v)), p2.split(',').map(v => parseInt(v))])
+  .map(([p1, p2]) => {return {p1: {x: p1[0], y: p1[1]}, p2: {x: p2[0], y: p2[1]}}})
 
-const board = []
-for (var i = 0; i < 1000; i++) {
-  board.push([])
-  for (var j = 0; j < 1000; j++) {
-    board[i].push(0)
-  }
-}
+const points = new Map()
 
-for (const {start, end} of coords) {
-  if (start.x === end.x || start.y === end.y) {
-    const [smaller, larger] = start.x === end.x ? (start.y > end.y ? [end, start] : [start, end]) : (start.x > end.x ? [end, start] : [start, end])
-    for (var x = smaller.x; x <= larger.x; x++) {
-      for (var y = smaller.y; y <= larger.y; y++) {
-        board[y][x]++ 
-      }
-    }
-  }
-}
+// mark horizontal and vertical lines
+coords
+  .filter(({p1, p2}) => p1.y === p2.y || p1.x === p2.x)
+  .forEach(({p1, p2}) => getLinePoints(p1, p2).forEach(p => markPoint(points, p[1], p[0])))
 
-console.log({resul1: board.flat().filter(v => v >= 2).length})
+console.log({result1: [...points.values()].map(m => [...m.values()]).flat().filter(v => v >= 2).length})
 
-const board2 = []
-for (var i = 0; i < 1000; i++) {
-  board2.push([])
-  for (var j = 0; j < 1000; j++) {
-    board2[i].push(0)
-  }
-}
+// mark diagonals
+coords
+  .filter(({p1, p2}) => p1.y !== p2.y && p1.x !== p2.x)
+  .forEach(({p1, p2}) => getLinePoints(p1, p2).forEach(p => markPoint(points, p[1], p[0])))
 
-for (const {start, end} of coords) {
-  const isHorizontal = start.y === end.y
-  const isVertical = start.x === end.x
-  const isDiagonal = !isHorizontal && !isVertical
-
-  if (isHorizontal || isVertical) {
-    const [smaller, larger] = start.x === end.x ? (start.y > end.y ? [end, start] : [start, end]) : (start.x > end.x ? [end, start] : [start, end])
-
-    for (var x = smaller.x; x <= larger.x; x++) {
-      for (var y = smaller.y; y <= larger.y; y++) {
-        board2[y][x]++ 
-      }
-    }
-  } else {
-    // right, down
-    if (start.x < end.x && start.y < end.y) {
-      console.log('right down')
-      var {x, y} = start
-      while (x <= end.x && y <= end.y) {
-        console.log({x, y})
-        board2[y][x]++ 
-        x++
-        y++
-      }
-    // right, up
-    } else if (start.x < end.x && start.y > end.y) {
-      console.log('right up')
-      var {x, y} = start
-      while (x <= end.x && y >= end.y) {
-        console.log('right up', {x, y})
-        board2[y][x]++
-        x++
-        y--
-      }
-    // left, down
-    } else if (start.x > end.x && start.y < end.y) {
-      console.log('left down')
-      var {x, y} = start
-      while (x >= end.x && y <= end.y) {
-        console.log({x, y})
-        board2[y][x]++
-        x--
-        y++
-      }
-    // left, up
-    } else if (start.x > end.x && start.y > end.y) {
-      console.log('left up')
-      var {x, y} = start
-      while (x >= end.x && y >= end.y) {
-        console.log({x, y})
-        board2[y][x]++
-        x--
-        y--
-      }
-    }
-    console.log('end')
-  }
-}
-
-console.log({resul2: board2.flat().filter(v => v >= 2).length})
+console.log({result2: [...points.values()].map(m => [...m.values()]).flat().filter(v => v >= 2).length})
