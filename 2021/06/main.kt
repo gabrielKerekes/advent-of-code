@@ -26,6 +26,10 @@ fun main() {
             counts
         }
 
+    for (var i =0 ;i , jasd 12j  ) {
+        if (k)
+    }
+
     for (i in 0..255) {
         val zeroes = result2.removeFirst()
         result2.add(zeroes)
